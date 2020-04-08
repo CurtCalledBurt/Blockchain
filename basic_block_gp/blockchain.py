@@ -120,7 +120,7 @@ class Blockchain(object):
         guess = f"{block_string}{proof}".encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         # return True or False
-        difficulty = "00"
+        difficulty = "00000"
         return guess_hash[:len(difficulty)] == difficulty
 
 
@@ -134,7 +134,7 @@ node_identifier = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 
-@app.route('/mine', methods=['GET'])
+@app.route('/mine', methods=['GET', 'POST'])
 def mine():
     # Run the proof of work algorithm to get the next proof
     proof = blockchain.proof_of_work()
@@ -159,6 +159,12 @@ def full_chain():
         'length': len(blockchain.chain),
         'chain': blockchain.chain,
     }
+    return jsonify(response), 200
+
+
+@app.route('/last_block', methods=['GET'])
+def last_block():
+    response = blockchain.last_block
     return jsonify(response), 200
 
 

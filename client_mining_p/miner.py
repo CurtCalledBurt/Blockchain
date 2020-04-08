@@ -13,9 +13,13 @@ def proof_of_work(block):
     in an effort to find a number that is a valid proof
     :return: A valid proof for the provided block
     """
+    # get the block as a string
     block_string = json.dumps(block, sort_keys=True)
+    # initialize proof guess
     proof = 0
+    # search for a valid proof
     while not valid_proof(block_string, proof):
+        # increment our proof guess
         proof += 1
     return proof
 
@@ -31,9 +35,13 @@ def valid_proof(block_string, proof):
     correct number of leading zeroes.
     :return: True if the resulting hash is a valid proof, False otherwise
     """
+    # construct our guess from the block's string and our current proof guess
     guess = f"{block_string}{proof}".encode()
+    # get the hash of our guess in hexadecimal
     guess_hash = hashlib.sha256(guess).hexdigest()
+    # set the difficulty of what hashes we are looking for
     difficulty = "000"
+    # return if our guess's hash has the correct number of zeroes at the beginning
     return guess_hash[:len(difficulty)] == difficulty
 
 
@@ -63,27 +71,25 @@ if __name__ == '__main__':
             print(r)
             break
 
-        # TODO: Get the block from `data` and use it to look for a new proof
-        # new_proof = ???
+        # get a new proof for the current last block
         new_proof = proof_of_work(data)
 
         # When found, POST it to the server {"proof": new_proof, "id": id}
         post_data = {"proof": new_proof, "id": id}
-
         r = requests.post(url=node + "/mine", json=post_data)
-        # data = r.json()
+        
+        # get the server's response from our post
         try:
             data = r.json()
-        except ValueError:
+        except ValidationError:
             print(r)
 
-        # TODO: If the server responds with a 'message' 'New Block Forged'
-        # add 1 to the number of coins mined and print it.  Otherwise,
-        # print the message from the server.
-
+        # after sending a successful proof to the server, get a response back 
+        # and increment our personal count of new blocks we've forged
         if data['message'] == 'New Block Forged':
             coins_mined += 1
             print('Coins Mined: ', coins_mined)
             print('Proof of new coin: ', new_proof)
+        # the block wasn't forged, print the server's message to us
         else:
             print(data['message'])
