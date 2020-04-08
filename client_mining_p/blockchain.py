@@ -119,7 +119,7 @@ class Blockchain(object):
         guess = f"{block_string}{proof}".encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         # return True or False
-        difficulty = "00"
+        difficulty = "00000"
         return guess_hash[:len(difficulty)] == difficulty
 
 
