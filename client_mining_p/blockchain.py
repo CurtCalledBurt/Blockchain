@@ -90,20 +90,6 @@ class Blockchain(object):
     def last_block(self):
         return self.chain[-1]
 
-    def proof_of_work(self):
-        """
-        Simple Proof of Work Algorithm
-        Stringify the block and look for a proof.
-        Loop through possibilities, checking each one against `valid_proof`
-        in an effort to find a number that is a valid proof
-        :return: A valid proof for the provided block
-        """
-        block_string = json.dumps(self.last_block, sort_keys=True)
-        proof = 0
-        while not self.valid_proof(block_string, proof):
-            proof += 1
-        return proof
-
     @staticmethod
     def valid_proof(block_string, proof):
         """
@@ -121,6 +107,17 @@ class Blockchain(object):
         # return True or False
         difficulty = "00000"
         return guess_hash[:len(difficulty)] == difficulty
+    
+
+    def new_transaction(self, sender, recipient, amount):
+
+        self.current_transactions.append({
+            'sender': sender,
+            'recipient': recipient,
+            'amount': amount,
+        })
+
+        return self.last_block['index'] + 1
 
 
 # Instantiate our Node
@@ -134,11 +131,27 @@ blockchain = Blockchain()
 
 @app.route('/mine', methods=['GET', 'POST'])
 def mine():
-    # Run the proof of work algorithm to get the next proof
-    proof = blockchain.proof_of_work()
-    # Forge the new Block by adding it to the chain with the proof
-    previous_hash = blockchain.hash(blockchain.last_block)
-    block = blockchain.new_block(proof, previous_hash)
+    # get post from client
+    data = request.get_json()
+
+    # check if both and id and a proof is included in the response
+    if 'proof' not in data or 'id' not in data:
+        response = {'message': "Proof or Id missing from post request"}
+        return jsonify(response), 400
+    
+    # get the proof
+    proof = data['proof']
+
+    last_block = blockchain.last_block
+    last_block_string = json.dumps(last_block, sort_keys=True)
+
+    if blockchain.valid_proof(last_block_string, proof):
+        # reward person who found a valid proof
+        blockchain.new_transaction(sender=0, recipient=data['id'], amount=1)
+
+        # Forge the new Block by adding it to the chain with the proof
+        previous_hash = blockchain.hash(blockchain.last_block)
+        block = blockchain.new_block(proof, previous_hash)
 
     response = {
         'message': "New Block Forged",
@@ -160,7 +173,26 @@ def full_chain():
 
 @app.route('/last_block', methods=['GET'])
 def last_block():
-    response = blockchain.last_block
+    response = {
+        'last_block': blockchain.last_block
+    }
+    return jsonify(response), 200
+
+@app.route('/transaction/new', methods=['POST'])
+def new_transaction():
+    values = request.get_json()
+
+    required = ['sender', 'recipient', 'amount']
+    if not all(k in values for k in required):
+        return 'Missing Values', 400
+    
+    index = blockchain.new_transaction(
+        values['sender'], 
+        values['recipient'], 
+        values['amount']
+    )
+    response = {'message': f'Transaction will be added to Block {index}'}
+
     return jsonify(response), 200
 
 

@@ -4,6 +4,7 @@ import requests
 import sys
 import json
 
+from random import randint
 
 def proof_of_work(block):
     """
@@ -16,11 +17,11 @@ def proof_of_work(block):
     # get the block as a string
     block_string = json.dumps(block, sort_keys=True)
     # initialize proof guess
-    proof = 0
+    proof = randint(0, 1_000_000_000_000)
     # search for a valid proof
     while not valid_proof(block_string, proof):
         # increment our proof guess
-        proof += 1
+        proof = randint(0, 1_000_000_000_000)
     return proof
 
 
@@ -40,7 +41,7 @@ def valid_proof(block_string, proof):
     # get the hash of our guess in hexadecimal
     guess_hash = hashlib.sha256(guess).hexdigest()
     # set the difficulty of what hashes we are looking for
-    difficulty = "000"
+    difficulty = "00000"
     # return if our guess's hash has the correct number of zeroes at the beginning
     return guess_hash[:len(difficulty)] == difficulty
 
@@ -72,17 +73,14 @@ if __name__ == '__main__':
             break
 
         # get a new proof for the current last block
-        new_proof = proof_of_work(data)
+        new_proof = proof_of_work(data['last_block'])
 
         # When found, POST it to the server {"proof": new_proof, "id": id}
         post_data = {"proof": new_proof, "id": id}
+
         r = requests.post(url=node + "/mine", json=post_data)
-        
         # get the server's response from our post
-        try:
-            data = r.json()
-        except ValidationError:
-            print(r)
+        data = r.json()
 
         # after sending a successful proof to the server, get a response back 
         # and increment our personal count of new blocks we've forged
